@@ -1,4 +1,0 @@
-<launch>
-    <node pkg="test_pid_publisher" name="vehicle_dynamics" type="vehicle_dynamics.py"/>
-    <node pkg="test_pid_publisher" name="controls_graph" type="controls_graph.py"/>
-</launch>

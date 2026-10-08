@@ -1,47 +1,56 @@
-# Template: template-ros
+# ECEN 433 - Lab 5: PID Control & Lane Following
 
-This template provides a boilerplate repository
-for developing ROS-based software in Duckietown.
+Starter code for Lab 5. You will write one ROS node, a PID lane controller,
+tune it against a simulated Duckiebot on this machine, then run the same node
+on your robot, where it replaces Duckietown's controller and closes the loop
+around your Lab 4 detector.
 
-**NOTE:** If you want to develop software that does not use
-ROS, check out [this template](https://github.com/duckietown/template-basic).
-
-
-## How to use it
-
-### 1. Fork this repository
-
-Use the fork button in the top-right corner of the github page to fork this template repository.
+The full lab instructions live on the course site. This README covers the
+repository itself: how it is laid out, and how to build and run it.
 
 
-### 2. Create a new repository
+## Building and running
 
-Create a new repository on github.com while
-specifying the newly forked template repository as
-a template for your new repository.
+Build the Docker image. Run this from the root of this repository:
 
+```bash
+dts devel build -f
+```
 
-### 3. Define dependencies
+Then, on this machine, against the simulator:
 
-List the dependencies in the files `dependencies-apt.txt` and
-`dependencies-py3.txt` (apt packages and pip packages respectively).
+```bash
+dts devel run -X -L lane_sim
+```
 
+- `-X` allows the container to open GUI windows. Without it the plot never
+  appears.
+- `-L lane_sim` runs `launchers/lane_sim.sh`.
 
-### 4. Place your code
+On your robot, alongside your Lab 4 stack:
 
-Place your code in the directory `/packages/` of
-your new repository.
+```bash
+dts devel build -H DUCKIEBOT_NAME -f
+dts devel run   -H DUCKIEBOT_NAME -L lane_control
+```
 
+No `-X` there - the robot has no screen. Plot from a separate
+`dts gui DUCKIEBOT_NAME` shell with `rqt_plot`.
 
-### 5. Setup launchers
+To poke around inside the container instead of launching straight away:
 
-The directory `/launchers` can contain as many launchers (launching scripts)
-as you want. A default launcher called `default.sh` must always be present.
+```bash
+dts devel run -X --cmd bash
+```
 
-If you create an executable script (i.e., a file with a valid shebang statement)
-a launcher will be created for it. For example, the script file 
-`/launchers/my-launcher.sh` will be available inside the Docker image as the binary
-`dt-launcher-my-launcher`.
+and to attach a second terminal to a container that is already running:
 
-When launching a new container, you can simply provide `dt-launcher-my-launcher` as
-command.
+```bash
+dts devel run attach
+```
+
+New Python nodes must be executable or ROS will not find them:
+
+```bash
+chmod +x packages/pid_control/src/<node_name>.py
+```

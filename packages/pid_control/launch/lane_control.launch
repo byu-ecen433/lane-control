@@ -1,0 +1,25 @@
+<launch>
+
+  <!--
+    ECEN 433 - Lab 5, your lane controller.
+
+        test:=true    the lane simulator and a live plot, on your laptop
+        test:=false   your Lab 4 stack's lane pose, on the robot
+  -->
+
+  <arg name="test" default="false"/>
+  <arg name="ns" value="lane_control_test" if="$(arg test)"/>
+  <arg name="ns" value="$(optenv VEHICLE_NAME duckiebot)" unless="$(arg test)"/>
+
+  <group ns="$(arg ns)">
+
+    <!-- TODO (Part II): add your controller here. It must be named
+         lane_controller_node, and load config/$(arg ns).yaml inside its tag. -->
+
+    <node pkg="pid_control" type="lane_sim_node.py" name="lane_sim_node"
+          output="screen" if="$(arg test)"/>
+    <node pkg="pid_control" type="lane_graph.py" name="lane_graph" if="$(arg test)"/>
+
+  </group>
+
+</launch>
