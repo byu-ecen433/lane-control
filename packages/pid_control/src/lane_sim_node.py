@@ -14,6 +14,10 @@ Every `kick_period` seconds the robot is knocked to the next (d, phi) in
 how long until |d| < d_tol and |phi| < phi_tol for good, how far d crossed
 past the center line, and the largest omega your node asked for. These are
 measured on the true pose, not the noisy one you are sent.
+
+The true pose (x = distance along the lane, y = d, theta = phi) is also
+published on ~true_pose for lane_graph to draw. An all-NaN pose there marks a
+kick.
 """
 
 import math
@@ -22,6 +26,7 @@ from collections import deque
 
 import rospy
 from duckietown_msgs.msg import LanePose, Twist2DStamped
+from geometry_msgs.msg import Pose2D
 
 DEFAULT_KICKS = [[0.10, 0.0], [-0.08, 0.4], [0.0, -0.5], [0.06, -0.3]]
 
@@ -71,6 +76,7 @@ class LaneSimNode:
         self.d_tol = rospy.get_param("~d_tol", 0.02)
         self.phi_tol = rospy.get_param("~phi_tol", 0.2)
 
+        self.s = 0.0
         self.d, self.phi = self.kicks[0]
         self.kick_index = 0
         self.kick_time = None
@@ -84,6 +90,7 @@ class LaneSimNode:
                                maxlen=self.delay_steps + 1)
 
         self.pub_pose = rospy.Publisher("lane_filter_node/lane_pose", LanePose, queue_size=1)
+        self.pub_true = rospy.Publisher("~true_pose", Pose2D, queue_size=10)
         rospy.Subscriber("lane_controller_node/car_cmd", Twist2DStamped, self.cmd_cb, queue_size=1)
 
         rospy.loginfo("lane_sim_node publishing on %s, waiting for commands on %s",
@@ -107,11 +114,13 @@ class LaneSimNode:
                                  self.d, self.phi, self.d_tol, self.phi_tol)
         self.kick_index += 1
         self.kick_time = now
+        self.pub_true.publish(Pose2D(x=math.nan, y=math.nan, theta=math.nan))
 
     def step(self, dt):
         self.cmd_queue.append(self.latest_cmd)
         v, omega = self.cmd_queue[0]
 
+        self.s += v * math.cos(self.phi) * dt
         self.d += v * math.sin(self.phi) * dt
         self.phi += omega * dt
         self.phi = math.atan2(math.sin(self.phi), math.cos(self.phi))
@@ -130,6 +139,7 @@ class LaneSimNode:
         msg.in_lane = abs(self.d) < 0.2
         msg.status = LanePose.NORMAL
         self.pub_pose.publish(msg)
+        self.pub_true.publish(Pose2D(x=self.s, y=self.d, theta=self.phi))
 
     def run(self):
         rate = rospy.Rate(self.rate_hz)
